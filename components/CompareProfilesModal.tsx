@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { CustomerData, RecommendationExplanation } from "@/lib/matching/types";
 import { X, Check, Minus, Sparkles, Loader2, AlertTriangle, ShieldCheck, HelpCircle } from "lucide-react";
 import { calculateAge, formatHeight, formatCurrencyLakhs } from "@/lib/utils";
@@ -22,11 +23,16 @@ export function CompareProfilesModal({
   candidate,
   compatibility,
 }: CompareProfilesModalProps) {
+  const [mounted, setMounted] = useState(false);
   const [reasoning, setReasoning] = useState<any | null>(null);
   const [loadingReasoning, setLoadingReasoning] = useState(false);
   const [reasoningError, setReasoningError] = useState<string | null>(null);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!isOpen || !mounted || !customer || !candidate) return null;
 
   const handleRunAIReasoning = async () => {
     try {
@@ -62,7 +68,7 @@ export function CompareProfilesModal({
         { label: "Age", valA: `${custAge} years`, valB: `${candAge} years` },
         { label: "Height", valA: formatHeight(customer.heightCm), valB: formatHeight(candidate.heightCm) },
         { label: "Location", valA: `${customer.city}, ${customer.state}`, valB: `${candidate.city}, ${candidate.state}` },
-        { label: "Marital Status", valA: customer.maritalStatus.replace("_", " "), valB: candidate.maritalStatus.replace("_", " ") },
+        { label: "Marital Status", valA: (customer.maritalStatus || "").replace(/_/g, " "), valB: (candidate.maritalStatus || "").replace(/_/g, " ") },
       ],
     },
     {
@@ -89,14 +95,14 @@ export function CompareProfilesModal({
         { label: "Want Children", valA: customer.wantChildren, valB: candidate.wantChildren },
         { label: "Open to Relocate", valA: customer.openToRelocate, valB: candidate.openToRelocate },
         { label: "Open to Pets", valA: customer.openToPets, valB: candidate.openToPets },
-        { label: "Diet Preference", valA: customer.diet.replace("_", " "), valB: candidate.diet.replace("_", " ") },
+        { label: "Diet Preference", valA: (customer.diet || "").replace(/_/g, " "), valB: (candidate.diet || "").replace(/_/g, " ") },
       ],
     },
   ];
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-fade-in">
-      <div className="bg-[#FFFFFF] border border-[#E6E3DC] rounded-lg shadow-xl w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden text-[#242522] animate-modal-scale">
+  const modalElement = (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+      <div className="bg-[#FFFFFF] border border-[#E6E3DC] rounded-xl shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden text-[#242522] animate-modal-scale" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="px-6 py-4 border-b border-[#E6E3DC] flex items-center justify-between bg-[#FAF9F6]">
           <div>
@@ -310,7 +316,7 @@ export function CompareProfilesModal({
         <div className="px-6 py-3 border-t border-[#E6E3DC] bg-[#FAF9F6] flex justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-1.5 text-xs font-medium text-[#242522] bg-white border border-[#E6E3DC] rounded hover:bg-[#F8F7F4]"
+            className="px-4 py-1.5 text-xs font-medium text-[#242522] bg-white border border-[#E6E3DC] rounded hover:bg-[#F8F7F4] cursor-pointer"
           >
             Close Comparison
           </button>
@@ -318,4 +324,6 @@ export function CompareProfilesModal({
       </div>
     </div>
   );
+
+  return createPortal(modalElement, document.body);
 }

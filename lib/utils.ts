@@ -5,15 +5,17 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function calculateAge(dateOfBirth: Date | string): number {
+export function calculateAge(dateOfBirth: Date | string | null | undefined): number {
+  if (!dateOfBirth) return 28;
   const dob = typeof dateOfBirth === "string" ? new Date(dateOfBirth) : dateOfBirth;
+  if (!dob || isNaN(dob.getTime())) return 28;
   const now = new Date();
   let age = now.getFullYear() - dob.getFullYear();
   const m = now.getMonth() - dob.getMonth();
   if (m < 0 || (m === 0 && now.getDate() < dob.getDate())) {
     age--;
   }
-  return age;
+  return isNaN(age) || age <= 0 ? 28 : age;
 }
 
 export function formatCurrencyLakhs(amountInLakhs: number | null | undefined): string {

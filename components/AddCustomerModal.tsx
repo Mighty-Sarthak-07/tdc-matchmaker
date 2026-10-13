@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X, Loader2, UserPlus } from "lucide-react";
 
 interface AddCustomerModalProps {
@@ -10,6 +11,7 @@ interface AddCustomerModalProps {
 }
 
 export function AddCustomerModal({ isOpen, onClose, onSuccess }: AddCustomerModalProps) {
+  const [mounted, setMounted] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [gender, setGender] = useState<"MALE" | "FEMALE">("FEMALE");
@@ -26,7 +28,11 @@ export function AddCustomerModal({ isOpen, onClose, onSuccess }: AddCustomerModa
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!isOpen || !mounted) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,9 +82,9 @@ export function AddCustomerModal({ isOpen, onClose, onSuccess }: AddCustomerModa
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-fade-in">
-      <div className="bg-white border border-[#E8E5DE] rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden text-[#242522] animate-modal-scale">
+  const modalElement = (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+      <div className="bg-white border border-[#E8E5DE] rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden text-[#242522] animate-modal-scale" onClick={(e) => e.stopPropagation()}>
         <div className="px-6 py-4 border-b border-[#E8E5DE] flex items-center justify-between bg-[#FAF9F6] shrink-0">
           <div className="flex items-center gap-2">
             <UserPlus className="w-4 h-4 text-[#315747]" />
@@ -206,4 +212,6 @@ export function AddCustomerModal({ isOpen, onClose, onSuccess }: AddCustomerModa
       </div>
     </div>
   );
+
+  return createPortal(modalElement, document.body);
 }

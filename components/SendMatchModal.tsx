@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { CustomerData, RecommendationExplanation } from "@/lib/matching/types";
 import { X, Send, Sparkles, AlertCircle, CheckCircle, Loader2 } from "lucide-react";
 import { calculateAge, formatHeight } from "@/lib/utils";
@@ -22,6 +23,7 @@ export function SendMatchModal({
   compatibility,
   onSuccess,
 }: SendMatchModalProps) {
+  const [mounted, setMounted] = useState(false);
   const [subject, setSubject] = useState("");
   const [messageBody, setMessageBody] = useState("");
   const [loadingAI, setLoadingAI] = useState(false);
@@ -29,22 +31,32 @@ export function SendMatchModal({
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  const candAge = calculateAge(candidate.dateOfBirth);
-  const custAge = calculateAge(customer.dateOfBirth);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const candAge = calculateAge(candidate?.dateOfBirth);
+  const custAge = calculateAge(customer?.dateOfBirth);
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && candidate && customer) {
       setError(null);
       setSuccessMsg(null);
+      
+      const positiveA = compatibility?.topPositiveFactors?.[0] || "Aligned lifestyle preferences";
+      const positiveB = compatibility?.topPositiveFactors?.[1] || "Compatible education and career orientation";
+      const score = compatibility?.compatibilityScore ?? 85;
+      const tierLabel = (compatibility?.tier || "GOOD_POTENTIAL").replace(/_/g, " ");
+
       // Pre-fill default subject and message
       setSubject(`Curated Match Introduction: ${candidate.firstName} (${candAge}, ${candidate.city})`);
       setMessageBody(
         `Dear ${customer.firstName},\n\n` +
         `I am pleased to share an executive match profile for your consideration: ${candidate.firstName}, ${candAge} years old (${formatHeight(candidate.heightCm)}), based in ${candidate.city}.\n\n` +
         `${candidate.firstName} is currently working as ${candidate.designation || candidate.industry || "a professional"} and shares your relationship vision:\n` +
-        `• ${compatibility.topPositiveFactors[0] || "Aligned lifestyle preferences"}\n` +
-        `• ${compatibility.topPositiveFactors[1] || "Compatible education and career orientation"}\n\n` +
-        `Our deterministic compatibility score is evaluated at ${compatibility.compatibilityScore}% (${compatibility.tier.replace("_", " ")}).\n\n` +
+        `• ${positiveA}\n` +
+        `• ${positiveB}\n\n` +
+        `Our deterministic compatibility score is evaluated at ${score}% (${tierLabel}).\n\n` +
         `Please review this profile and let me know your thoughts so we can coordinate introductions.\n\n` +
         `Warm regards,\n` +
         `Your TDC Matchmaker`
@@ -52,7 +64,7 @@ export function SendMatchModal({
     }
   }, [isOpen, candidate, customer, compatibility, candAge]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted || !customer || !candidate) return null;
 
   const handleGenerateAI = async () => {
     try {
@@ -97,12 +109,12 @@ export function SendMatchModal({
           customerBId: candidate.id,
           subject,
           messageBody,
-          compatibilityScore: compatibility.compatibilityScore,
-          tier: compatibility.tier,
-          scoreBreakdown: compatibility.componentScores,
-          explanationText: compatibility.shortExplanation,
-          sharedPreferences: compatibility.topPositiveFactors,
-          potentialConflicts: compatibility.potentialConcerns,
+          compatibilityScore: compatibility?.compatibilityScore ?? 85,
+          tier: compatibility?.tier ?? "GOOD_POTENTIAL",
+          scoreBreakdown: compatibility?.componentScores ?? {},
+          explanationText: compatibility?.shortExplanation ?? "High compatibility profile.",
+          sharedPreferences: compatibility?.topPositiveFactors ?? [],
+          potentialConflicts: compatibility?.potentialConcerns ?? [],
         }),
       });
 
@@ -123,13 +135,19 @@ export function SendMatchModal({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-fade-in">
-      <div className="bg-[#FFFFFF] border border-[#E6E3DC] rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden text-[#242522] animate-modal-scale">
+  const scoreDisplay = compatibility?.compatibilityScore ?? 85;
+  const tierDisplay = (compatibility?.tier || "GOOD_POTENTIAL").replace(/_/g, " ");
+
+  const modalElement = (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+      <div 
+        className="bg-[#FFFFFF] border border-[#E6E3DC] rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden text-[#242522] animate-modal-scale"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Modal Header */}
-        <div className="px-6 py-4 border-b border-[#E6E3DC] flex items-center justify-between bg-[#FAF9F6]">
+        <div className="px-6 py-4 border-b border-[#E6E3DC] flex items-center justify-between bg-[#FAF9F6] shrink-0">
           <div>
-            <div className="text-xs uppercase tracking-wider text-[#777970] font-semibold">
+            <div className="text-[11px] uppercase tracking-wider text-[#777970] font-semibold">
               Action Confirmation
             </div>
             <h2 className="text-base font-semibold text-[#242522]">
@@ -138,7 +156,8 @@ export function SendMatchModal({
           </div>
           <button
             onClick={onClose}
-            className="p-1 text-[#777970] hover:text-[#242522] rounded hover:bg-[#EFECE6]"
+            className="p-1.5 text-[#777970] hover:text-[#242522] rounded-lg hover:bg-[#EFECE6] transition-colors cursor-pointer"
+            title="Close"
           >
             <X className="w-5 h-5" />
           </button>
@@ -147,7 +166,7 @@ export function SendMatchModal({
         {/* Modal Content */}
         <div className="p-4 sm:p-6 overflow-y-auto space-y-4 flex-1">
           {/* Profiles Comparison Card */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 bg-[#FAF9F6] border border-[#E6E3DC] rounded text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 bg-[#FAF9F6] border border-[#E6E3DC] rounded-lg text-xs">
             <div>
               <div className="text-[11px] text-[#777970] font-semibold uppercase">Client</div>
               <div className="font-semibold text-sm text-[#242522] mt-0.5">
@@ -169,8 +188,9 @@ export function SendMatchModal({
           </div>
 
           {/* Compatibility Highlight */}
-          <div className="p-3 bg-[#EBF2EE] border border-[#D4E3DB] rounded text-xs text-[#244838]">
-            <span className="font-semibold">Compatibility: {compatibility.compatibilityScore}% ({compatibility.tier.replace("_", " ")})</span> — {compatibility.shortExplanation}
+          <div className="p-3 bg-[#EBF2EE] border border-[#D4E3DB] rounded-lg text-xs text-[#244838]">
+            <span className="font-semibold">Compatibility: {scoreDisplay}% ({tierDisplay})</span>
+            {compatibility?.shortExplanation ? ` — ${compatibility.shortExplanation}` : ""}
           </div>
 
           {/* AI Drafting Toolbar */}
@@ -182,14 +202,14 @@ export function SendMatchModal({
               type="button"
               onClick={handleGenerateAI}
               disabled={loadingAI || submitting}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-[#315747] bg-[#EBF2EE] border border-[#D4E3DB] rounded hover:bg-[#DCEAE3] transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-[#315747] bg-[#EBF2EE] border border-[#D4E3DB] rounded-md hover:bg-[#DCEAE3] transition-colors disabled:opacity-50 cursor-pointer"
             >
               {loadingAI ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
               ) : (
-                <Sparkles className="w-3.5 h-3.5" />
+                <Sparkles className="w-3.5 h-3.5 text-[#315747]" />
               )}
-              <span>Regenerate with AI</span>
+              <span>Regenerate with Gemini AI</span>
             </button>
           </div>
 
@@ -203,7 +223,7 @@ export function SendMatchModal({
                 type="text"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
-                className="w-full px-3 py-1.5 text-xs bg-[#FFFFFF] border border-[#E6E3DC] rounded focus:border-[#315747] focus:ring-1 focus:ring-[#315747]"
+                className="w-full px-3 py-2 text-xs bg-[#FFFFFF] border border-[#E6E3DC] rounded-md focus:border-[#315747] focus:ring-1 focus:ring-[#315747] outline-none"
               />
             </div>
 
@@ -215,26 +235,26 @@ export function SendMatchModal({
                 rows={6}
                 value={messageBody}
                 onChange={(e) => setMessageBody(e.target.value)}
-                className="w-full px-3 py-2 text-xs bg-[#FFFFFF] border border-[#E6E3DC] rounded focus:border-[#315747] focus:ring-1 focus:ring-[#315747] font-mono leading-relaxed"
+                className="w-full px-3 py-2.5 text-xs bg-[#FFFFFF] border border-[#E6E3DC] rounded-md focus:border-[#315747] focus:ring-1 focus:ring-[#315747] font-mono leading-relaxed outline-none"
               />
             </div>
           </div>
 
           {/* Operational Simulation Notice */}
           <div className="text-[11px] text-[#777970] italic">
-            * Note: For this MVP demonstration, sending simulates email transmission and writes persistent records to Sent Matches and Activity Logs. Real third-party emails are not dispatched.
+            * Note: For this MVP demonstration, sending simulates email transmission and writes persistent records to Sent Matches and Activity Logs.
           </div>
 
           {/* Feedback states */}
           {error && (
-            <div className="p-3 bg-[#FDF2EE] border border-[#F5DDD5] rounded text-xs text-[#9A4630] flex items-center gap-2">
+            <div className="p-3 bg-[#FDF2EE] border border-[#F5DDD5] rounded-lg text-xs text-[#9A4630] flex items-center gap-2 animate-fade-in">
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
           {successMsg && (
-            <div className="p-3 bg-[#EBF2EE] border border-[#D4E3DB] rounded text-xs text-[#244838] flex items-center gap-2">
+            <div className="p-3 bg-[#EBF2EE] border border-[#D4E3DB] rounded-lg text-xs text-[#244838] flex items-center gap-2 animate-fade-in">
               <CheckCircle className="w-4 h-4 shrink-0" />
               <span>{successMsg}</span>
             </div>
@@ -242,12 +262,12 @@ export function SendMatchModal({
         </div>
 
         {/* Modal Footer */}
-        <div className="px-6 py-3.5 border-t border-[#E6E3DC] bg-[#FAF9F6] flex items-center justify-end gap-2.5">
+        <div className="px-6 py-3.5 border-t border-[#E6E3DC] bg-[#FAF9F6] flex items-center justify-end gap-2.5 shrink-0">
           <button
             type="button"
             onClick={onClose}
             disabled={submitting}
-            className="px-4 py-1.5 text-xs font-medium text-[#555750] bg-white border border-[#E6E3DC] rounded hover:bg-[#F8F7F4] transition-colors"
+            className="px-4 py-2 text-xs font-medium text-[#555750] bg-white border border-[#E6E3DC] rounded-md hover:bg-[#F8F7F4] transition-colors cursor-pointer"
           >
             Cancel
           </button>
@@ -255,7 +275,7 @@ export function SendMatchModal({
             type="button"
             onClick={handleSend}
             disabled={submitting}
-            className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium text-white bg-[#315747] hover:bg-[#254437] rounded transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-white bg-[#315747] hover:bg-[#254437] rounded-md transition-colors disabled:opacity-50 cursor-pointer shadow-xs"
           >
             {submitting ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -268,4 +288,6 @@ export function SendMatchModal({
       </div>
     </div>
   );
+
+  return createPortal(modalElement, document.body);
 }

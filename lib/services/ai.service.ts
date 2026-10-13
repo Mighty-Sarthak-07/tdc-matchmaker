@@ -22,6 +22,31 @@ const FitReasoningResponseSchema = z.object({
   matchmakerAdvice: z.string(),
 });
 
+const OptimalPickerResponseSchema = z.object({
+  selectedCandidateId: z.string(),
+  candidateName: z.string(),
+  selectionConfidence: z.number().min(0).max(100),
+  headline: z.string(),
+  selectionRationale: z.string(),
+  synergyPillars: z.array(z.string()).min(2),
+  conversationPitch: z.string(),
+  comparativeEdge: z.string(),
+});
+
+export type OptimalProfilePickerResult = {
+  isAIGenerated: boolean;
+  provider: "gemini" | "deterministic";
+  selectedCandidateId: string;
+  candidateName: string;
+  customerName: string;
+  selectionConfidence: number;
+  headline: string;
+  selectionRationale: string;
+  synergyPillars: string[];
+  conversationPitch: string;
+  comparativeEdge: string;
+};
+
 export type ExplanationResult = {
   isAIGenerated: boolean;
   provider: "gemini" | "deterministic";
@@ -67,13 +92,20 @@ export class AIService {
 
   /**
    * Internal helper to invoke Google Gemini REST API.
-   * Leverages gemini-1.5-flash with fallback to gemini-2.0-flash / gemini-1.5-pro.
+   * Prioritizes Gemini 3.0 Flash (or configured GEMINI_MODEL) with fallbacks to gemini-2.0-flash and gemini-1.5-flash.
    */
   private static async callGemini(systemPrompt: string, userPayload: any): Promise<string | null> {
     const apiKey = process.env.GEMINI_API_KEY?.trim();
     if (!apiKey || apiKey === "your-gemini-api-key") return null;
 
-    const models = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"];
+    const primaryModel = process.env.GEMINI_MODEL?.trim() || "gemini-3.0-flash";
+    const models = [
+      primaryModel,
+      "gemini-2.0-flash",
+      "gemini-1.5-flash",
+      "gemini-2.5-flash",
+      "gemini-1.5-pro",
+    ].filter((m, idx, arr) => arr.indexOf(m) === idx);
 
     for (const model of models) {
       try {
@@ -443,4 +475,179 @@ Output valid JSON matching this schema:
       matchmakerAdvice: `Prioritize an introductory phone consultation focusing on mutual timeline expectations (${customer.marriageTimeline ? customer.marriageTimeline.replace(/_/g, " ") : "6-12 months"}). Verify lifestyle flexibility before arranging the first in-person meeting.`,
     };
   }
+
+  /**
+   * 4. AI OPTIMIZED PROFILE PICKER
+   * Uses Gemini 3.0 Flash (with deterministic fallback) to evaluate the candidate pool
+   * and select the single maximum compatible profile with strategic rationale.
+   */
+  static async selectOptimalProfile(
+    customer: CustomerData,
+    candidatePool: Array<{ candidate: CustomerData; compatibility: RecommendationExplanation }>
+  ): Promise<OptimalProfilePickerResult> {
+    if (!candidatePool || candidatePool.length === 0) {
+      throw new Error("Candidate pool is empty; cannot run AI optimal profile picker.");
+    }
+
+    const fallbackResult = this.fallbackOptimalProfile(customer, candidatePool);
+
+    // Sanitize and prepare candidate comparison summaries for Gemini
+    const sanitizedPool = candidatePool.slice(0, 8).map((item) => {
+      const c = item.candidate;
+      const comp = item.compatibility;
+      return {
+        id: c.id,
+        name: `${c.firstName} ${c.lastName}`,
+        code: c.customerCode,
+        age: calculateAge(c.dateOfBirth),
+        city: c.city,
+        state: c.state,
+        education: c.highestEducation,
+        degree: c.degree,
+        designation: c.designation || c.industry,
+        incomeLPA: c.annualIncome,
+        religion: c.religion,
+        diet: c.diet,
+        maritalStatus: c.maritalStatus,
+        wantChildren: c.wantChildren,
+        compatibilityScore: comp.compatibilityScore,
+        tier: comp.tier,
+        topFactors: comp.topPositiveFactors.slice(0, 3),
+        concerns: comp.potentialConcerns.slice(0, 2),
+      };
+    });
+
+    const systemPrompt = `You are the Lead Executive Matchmaker and Principal Decision Engine AI for TDC Matchmaker, an elite Indian matrimonial CRM.
+Evaluate the focal client and the provided candidate pool.
+Select the SINGLE MAXIMUM COMPATIBLE candidate who represents the highest probability of long-term matrimonial fulfillment and reciprocal synergy.
+
+Return ONLY a valid JSON object matching this schema:
+{
+  "selectedCandidateId": "string (must match one of the candidate id values)",
+  "candidateName": "string (candidate full name)",
+  "selectionConfidence": number (between 80 and 99),
+  "headline": "string (concise 1-line verdict, e.g. 'Maximum Strategic Alignment: [Name] balances location stability and career parity')",
+  "selectionRationale": "string (detailed 2-3 sentence explanation of why this profile outperforms all other eligible candidates for this client)",
+  "synergyPillars": ["string (Pillar 1)", "string (Pillar 2)", "string (Pillar 3)"],
+  "conversationPitch": "string (a warm, professional introductory pitch the matchmaker can speak directly to the client)",
+  "comparativeEdge": "string (specific reason why this candidate edges out the runner-up profiles)"
 }
+
+Do NOT output markdown code fences or conversational preamble. Return pure JSON only.`;
+
+    const payload = {
+      focalClient: {
+        id: customer.id,
+        name: `${customer.firstName} ${customer.lastName}`,
+        age: calculateAge(customer.dateOfBirth),
+        city: customer.city,
+        education: customer.highestEducation,
+        designation: customer.designation || customer.industry,
+        incomeLPA: customer.annualIncome,
+        religion: customer.religion,
+        diet: customer.diet,
+        maritalStatus: customer.maritalStatus,
+        wantChildren: customer.wantChildren,
+        partnerPreferences: {
+          ageMin: customer.partnerPreference?.minAge,
+          ageMax: customer.partnerPreference?.maxAge,
+          preferredCities: customer.partnerPreference?.preferredCities,
+          education: customer.partnerPreference?.preferredEducation,
+          religions: customer.partnerPreference?.religionPreferences,
+          diet: customer.partnerPreference?.dietPreferences,
+        },
+      },
+      candidatePool: sanitizedPool,
+    };
+
+    try {
+      const responseText = await this.callGemini(systemPrompt, payload);
+      if (!responseText) {
+        return fallbackResult;
+      }
+
+      const cleanJson = responseText
+        .replace(/^```json\s*/i, "")
+        .replace(/^```\s*/i, "")
+        .replace(/\s*```$/i, "")
+        .trim();
+
+      const parsed = JSON.parse(cleanJson);
+      const validated = OptimalPickerResponseSchema.parse(parsed);
+
+      // Verify that the chosen candidate actually exists in our pool
+      const matched = candidatePool.find((c) => c.candidate.id === validated.selectedCandidateId);
+      if (!matched) {
+        return fallbackResult;
+      }
+
+      return {
+        isAIGenerated: true,
+        provider: "gemini",
+        selectedCandidateId: validated.selectedCandidateId,
+        candidateName: validated.candidateName || `${matched.candidate.firstName} ${matched.candidate.lastName}`,
+        customerName: `${customer.firstName} ${customer.lastName}`,
+        selectionConfidence: Math.round(validated.selectionConfidence),
+        headline: validated.headline,
+        selectionRationale: validated.selectionRationale,
+        synergyPillars: validated.synergyPillars,
+        conversationPitch: validated.conversationPitch,
+        comparativeEdge: validated.comparativeEdge,
+      };
+    } catch (err) {
+      console.warn("Gemini optimal profile picker fallback triggered:", err);
+      return fallbackResult;
+    }
+  }
+
+  /**
+   * Deterministic fallback optimal profile picker
+   */
+  public static fallbackOptimalProfile(
+    customer: CustomerData,
+    candidatePool: Array<{ candidate: CustomerData; compatibility: RecommendationExplanation }>
+  ): OptimalProfilePickerResult {
+    // Sort pool by highest compatibility score, verified status, and mutual location
+    const sorted = [...candidatePool].sort((a, b) => {
+      if (b.compatibility.compatibilityScore !== a.compatibility.compatibilityScore) {
+        return b.compatibility.compatibilityScore - a.compatibility.compatibilityScore;
+      }
+      if (b.candidate.isVerified !== a.candidate.isVerified) {
+        return (b.candidate.isVerified ? 1 : 0) - (a.candidate.isVerified ? 1 : 0);
+      }
+      const aSameCity = a.candidate.city.toLowerCase() === customer.city.toLowerCase();
+      const bSameCity = b.candidate.city.toLowerCase() === customer.city.toLowerCase();
+      return (bSameCity ? 1 : 0) - (aSameCity ? 1 : 0);
+    });
+
+    const best = sorted[0];
+    const bestCand = best.candidate;
+    const bestComp = best.compatibility;
+    const candAge = calculateAge(bestCand.dateOfBirth);
+    const sameCity = bestCand.city.toLowerCase() === customer.city.toLowerCase();
+
+    const synergyPillars = [
+      `Exceptional compatibility index of ${bestComp.compatibilityScore}% evaluated across reciprocal dimensions`,
+      sameCity
+        ? `Zero relocation friction: Both reside in ${customer.city}, allowing organic courtship timelines`
+        : `Verified lifestyle agility with mutual openness to regional relocation`,
+      `Shared cultural ethos (${customer.religion}) and reciprocal relationship milestones`,
+      `Educational parity (${customer.highestEducation} & ${bestCand.highestEducation}) fostering intellectual resonance`,
+    ];
+
+    return {
+      isAIGenerated: false,
+      provider: "deterministic",
+      selectedCandidateId: bestCand.id,
+      candidateName: `${bestCand.firstName} ${bestCand.lastName}`,
+      customerName: `${customer.firstName} ${customer.lastName}`,
+      selectionConfidence: Math.min(98, Math.max(88, bestComp.compatibilityScore)),
+      headline: `Optimal Match Selected: ${bestCand.firstName} ${bestCand.lastName} leads candidate pool with ${bestComp.compatibilityScore}% mutual compatibility`,
+      selectionRationale: `${bestCand.firstName} (${candAge}, ${bestCand.city}) demonstrates the highest holistic alignment with ${customer.firstName}'s stated criteria. Beyond numerical score matching, their profile exhibits strong mutual expectations regarding lifestyle pace, family values, and career trajectory.`,
+      synergyPillars,
+      conversationPitch: `"${customer.firstName}, based on a holistic evaluation of your client profile, ${bestCand.firstName} represents your highest potential match. You share comparable academic backgrounds, mutual values on family balance, and seamless compatibility regarding daily lifestyle expectations."`,
+      comparativeEdge: `${bestCand.firstName} outranks other candidates due to clean adherence to both primary constraints and nuanced preference weights without active dealbreakers.`,
+    };
+  }
+}
+

@@ -22,6 +22,8 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { CompatibilityBreakdown } from "@/components/CompatibilityBreakdown";
 import { SendMatchModal } from "@/components/SendMatchModal";
 import { CompareProfilesModal } from "@/components/CompareProfilesModal";
+import { AIOptimalPickerModal } from "@/components/AIOptimalPickerModal";
+import { OptimalProfilePickerResult } from "@/lib/services/ai.service";
 import { calculateAge, formatHeight } from "@/lib/utils";
 
 function RecommendationsWorkspaceInner() {
@@ -45,6 +47,9 @@ function RecommendationsWorkspaceInner() {
   // Modals state
   const [compareCandidate, setCompareCandidate] = useState<any | null>(null);
   const [sendMatchCandidate, setSendMatchCandidate] = useState<any | null>(null);
+  const [optimalResult, setOptimalResult] = useState<OptimalProfilePickerResult | null>(null);
+  const [loadingPicker, setLoadingPicker] = useState(false);
+  const [pickerError, setPickerError] = useState<string | null>(null);
 
   // Load client dropdown list
   useEffect(() => {
@@ -110,6 +115,29 @@ function RecommendationsWorkspaceInner() {
     setRecommendations((prev) => prev.filter((r) => r.candidate.id !== candidateId));
   };
 
+  const handleRunAIOptimalPicker = async () => {
+    if (!selectedCustomer || recommendations.length === 0) return;
+    try {
+      setLoadingPicker(true);
+      setPickerError(null);
+      const res = await fetch("/api/recommendations/ai-optimize-picker", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customer: selectedCustomer,
+          candidates: recommendations,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to pick optimal profile");
+      setOptimalResult(data.optimalMatch);
+    } catch (err: any) {
+      setPickerError(err.message || "Failed to run AI optimal profile picker");
+    } finally {
+      setLoadingPicker(false);
+    }
+  };
+
   return (
     <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto w-full space-y-6 text-[#242522] animate-fade-in">
       {/* Header */}
@@ -144,7 +172,7 @@ function RecommendationsWorkspaceInner() {
         </div>
       </div>
 
-      {/* Selected Client Summary Ribbon */}
+      {/* Selected Client Summary Ribbon with AI Optimal Profile Picker Button */}
       {selectedCustomer && (
         <div className="p-4 bg-[#FFFFFF] border border-[#E6E3DC] rounded shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -163,20 +191,42 @@ function RecommendationsWorkspaceInner() {
                 <StatusBadge status={selectedCustomer.journeyStage} size="sm" />
               </div>
               <div className="text-xs text-[#555750] mt-0.5">
-                {calculateAge(selectedCustomer.dateOfBirth)} yrs • {selectedCustomer.city} • {selectedCustomer.highestEducation} • {selectedCustomer.diet.replace("_", " ")}
+                {calculateAge(selectedCustomer.dateOfBirth)} yrs • {selectedCustomer.city} • {selectedCustomer.highestEducation} • {(selectedCustomer.diet || "").replace(/_/g, " ")}
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 text-xs">
+          <div className="flex items-center gap-2.5 text-xs flex-wrap">
+            <button
+              onClick={handleRunAIOptimalPicker}
+              disabled={loadingPicker || recommendations.length === 0}
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-[#28493B] hover:bg-[#1E392E] text-white text-xs font-medium shadow-xs transition-all disabled:opacity-50 btn-press cursor-pointer"
+              title="Run Gemini 3.0 Flash to evaluate and select the maximum compatible candidate"
+            >
+              {loadingPicker ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Sparkles className="w-3.5 h-3.5 text-[#E6C687]" />
+              )}
+              <span>AI Optimize Profile Picker</span>
+              <span className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded font-mono">Gemini</span>
+            </button>
+
             <Link
               href={`/customers/${selectedCustomer.id}`}
-              className="text-[#315747] hover:underline font-medium flex items-center gap-1"
+              className="text-[#315747] hover:underline font-medium flex items-center gap-1 px-3 py-2 rounded-lg border border-[#E6E3DC] bg-white hover:bg-[#FAF9F6] transition-colors"
             >
               <span>View Full Dossier</span>
               <ExternalLink className="w-3 h-3" />
             </Link>
           </div>
+        </div>
+      )}
+
+      {pickerError && (
+        <div className="p-3 bg-[#FDF2EE] border border-[#F5DDD5] rounded-lg text-xs text-[#9A4630] flex items-center gap-2 animate-fade-in">
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          <span>{pickerError}</span>
         </div>
       )}
 
@@ -247,12 +297,36 @@ function RecommendationsWorkspaceInner() {
             const cand = rec.candidate;
             const comp = rec.compatibility;
             const candAge = calculateAge(cand.dateOfBirth);
+            const isOptimalChoice = optimalResult?.selectedCandidateId === cand.id;
 
             return (
               <div
                 key={cand.id}
-                className="p-5 bg-[#FFFFFF] border border-[#E6E3DC] rounded shadow-xs hover:border-[#D0CCC2] transition-colors text-xs card-hover animate-fade-in"
+                className={`p-5 bg-[#FFFFFF] border rounded shadow-xs hover:border-[#D0CCC2] transition-all text-xs card-hover animate-fade-in ${
+                  isOptimalChoice
+                    ? "border-[#315747] ring-1 ring-[#315747]/20 shadow-md bg-gradient-to-b from-[#FAFBF9] to-[#FFFFFF]"
+                    : "border-[#E6E3DC]"
+                }`}
               >
+                {/* AI Optimal Match Selection Banner */}
+                {isOptimalChoice && (
+                  <div className="mb-3.5 p-2.5 rounded-lg bg-[#EDF5F0] border border-[#B7D8C4] flex items-center justify-between text-xs text-[#1E392E] animate-fade-in">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-[#315747] shrink-0" />
+                      <span className="font-semibold">
+                        Gemini 3.0 Flash Selected Maximum Compatible Profile ({optimalResult?.selectionConfidence}% Confidence)
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setOptimalResult(optimalResult)}
+                      className="font-semibold text-[#28493B] hover:underline underline-offset-2 cursor-pointer shrink-0"
+                    >
+                      View AI Decision Rationale &rarr;
+                    </button>
+                  </div>
+                )}
+
                 <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 pb-3 border-b border-[#E6E3DC]">
                   {/* Candidate Header */}
                   <div className="flex items-start gap-3">
@@ -389,6 +463,29 @@ function RecommendationsWorkspaceInner() {
           compatibility={compareCandidate.compatibility}
         />
       )}
+
+      {/* AI Optimal Profile Picker Modal */}
+      {optimalResult && selectedCustomer && (() => {
+        const matched =
+          recommendations.find((r) => r.candidate.id === optimalResult.selectedCandidateId) ||
+          recommendations[0];
+        if (!matched) return null;
+        return (
+          <AIOptimalPickerModal
+            isOpen={!!optimalResult}
+            onClose={() => setOptimalResult(null)}
+            result={optimalResult}
+            candidate={matched.candidate}
+            compatibility={matched.compatibility}
+            onSendPresentation={(cand, comp) => {
+              setSendMatchCandidate({ candidate: cand, compatibility: comp });
+            }}
+            onCompare={(cand, comp) => {
+              setCompareCandidate({ candidate: cand, compatibility: comp });
+            }}
+          />
+        );
+      })()}
     </div>
   );
 }
