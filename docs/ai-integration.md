@@ -15,6 +15,7 @@ AI is deployed strictly in bounded human-in-the-loop operational touchpoints:
 1. **Score/Rank Explanations**: Synthesizing the deterministic 6-component breakdown into succinct, executive 2–3 sentence briefings with key highlights.
 2. **Personalized Introductions for Email**: Drafting respectful, tailored presentation letters from matchmakers to clients about recommended candidates.
 3. **LLM-Based Rule Engine & Natural Language Fit Reasoning**: Evaluating deep qualitative synergy, cultural and family value alignment, career and intellectual parity, and identifying subtle interpersonal friction points with matchmaker consultation guidance.
+4. **AI Optimized Profile Picker (Gemini 3.0 Flash)**: Intelligently evaluating the eligible candidate pool to select the single maximum compatible candidate, presenting 4 strategic synergy pillars, matchmaker opening pitch, and competitive advantage rationale.
 
 ---
 
