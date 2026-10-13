@@ -1,10 +1,11 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { CustomerData, RecommendationExplanation } from "@/lib/matching/types";
-import { X, Check, Minus } from "lucide-react";
+import { X, Check, Minus, Sparkles, Loader2, AlertTriangle, ShieldCheck, HelpCircle } from "lucide-react";
 import { calculateAge, formatHeight, formatCurrencyLakhs } from "@/lib/utils";
 import { CompatibilityBreakdown } from "./CompatibilityBreakdown";
+import { StatusBadge } from "./StatusBadge";
 
 interface CompareProfilesModalProps {
   isOpen: boolean;
@@ -21,7 +22,35 @@ export function CompareProfilesModal({
   candidate,
   compatibility,
 }: CompareProfilesModalProps) {
+  const [reasoning, setReasoning] = useState<any | null>(null);
+  const [loadingReasoning, setLoadingReasoning] = useState(false);
+  const [reasoningError, setReasoningError] = useState<string | null>(null);
+
   if (!isOpen) return null;
+
+  const handleRunAIReasoning = async () => {
+    try {
+      setLoadingReasoning(true);
+      setReasoningError(null);
+      const res = await fetch("/api/recommendations/ai-reasoning", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customer,
+          candidate,
+          compatibility,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to evaluate profile fit");
+      setReasoning(data);
+    } catch (err: any) {
+      setReasoningError(err.message || "Failed to run AI reasoning");
+    } finally {
+      setLoadingReasoning(false);
+    }
+  };
 
   const custAge = calculateAge(customer.dateOfBirth);
   const candAge = calculateAge(candidate.dateOfBirth);
@@ -151,6 +180,129 @@ export function CompareProfilesModal({
               concerns={compatibility.potentialConcerns}
               missingInfo={compatibility.missingInformation}
             />
+          </div>
+
+          {/* AI Fit Reasoning Section (Gemini / LLM) */}
+          <div className="pt-5 border-t border-[#E6E3DC] space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-[#242522]">
+                  <Sparkles className="w-4 h-4 text-[#B76E57]" />
+                  <span>LLM Natural Language Fit Reasoning</span>
+                </div>
+                <p className="text-[11px] text-[#777970] mt-0.5">
+                  Deep multi-attribute qualitative evaluation powered by Google Gemini with deterministic rules.
+                </p>
+              </div>
+
+              {!reasoning && (
+                <button
+                  type="button"
+                  onClick={handleRunAIReasoning}
+                  disabled={loadingReasoning}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-[#315747] hover:bg-[#254437] rounded transition-colors shadow-xs btn-press cursor-pointer disabled:opacity-50"
+                >
+                  {loadingReasoning ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-3.5 h-3.5 text-[#EAE5DC]" />
+                  )}
+                  <span>{loadingReasoning ? "Evaluating with Gemini..." : "Run AI Deep Fit Reasoning"}</span>
+                </button>
+              )}
+            </div>
+
+            {reasoningError && (
+              <div className="p-3 bg-[#FDF2EE] border border-[#F5DDD5] rounded text-xs text-[#9A4630] flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>{reasoningError}</span>
+              </div>
+            )}
+
+            {reasoning && (
+              <div className="p-4 bg-[#FAF9F6] border border-[#E6E3DC] rounded-lg space-y-3.5 animate-fade-in text-xs">
+                {/* Header row with provider & score */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#E8E5DE]">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-sm text-[#242522]">
+                      AI Suitability: {reasoning.qualitativeScore}%
+                    </span>
+                    <StatusBadge status={reasoning.tier} size="sm" />
+                  </div>
+
+                  <span className="text-[10px] font-mono text-[#777970] px-2 py-0.5 rounded bg-white border border-[#E0DCD3]">
+                    Engine: {reasoning.provider === "gemini" ? "Google Gemini 1.5 Flash" : reasoning.provider === "openai" ? "OpenAI gpt-4o-mini" : "Deterministic Fallback Engine"}
+                  </span>
+                </div>
+
+                {/* Synthesis */}
+                <div>
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-[#777970] mb-1">
+                    Executive Match Summary
+                  </div>
+                  <p className="text-[#3A3C36] leading-relaxed">
+                    {reasoning.reasoningSummary}
+                  </p>
+                </div>
+
+                {/* 2-column breakdown */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                  <div className="p-3 bg-white border border-[#EAE7DF] rounded space-y-1">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-[#315747]">
+                      Cultural & Family Synergy
+                    </div>
+                    <p className="text-[11px] text-[#555750] leading-relaxed">
+                      {reasoning.culturalAndFamilySynergy}
+                    </p>
+                  </div>
+
+                  <div className="p-3 bg-white border border-[#EAE7DF] rounded space-y-1">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-[#315747]">
+                      Career & Lifestyle Alignment
+                    </div>
+                    <p className="text-[11px] text-[#555750] leading-relaxed">
+                      {reasoning.careerAndLifestyleAlignment}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Friction Points */}
+                {reasoning.potentialFrictionPoints?.length > 0 && (
+                  <div className="p-3 bg-[#FEFBF6] border border-[#F4E9D8] rounded space-y-1">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-[#A06010]">
+                      Potential Friction Points & Dealbreaker Watch
+                    </div>
+                    <ul className="text-[11px] text-[#7A5515] list-disc list-inside space-y-0.5">
+                      {reasoning.potentialFrictionPoints.map((pt: string, idx: number) => (
+                        <li key={idx}>{pt}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Matchmaker Advice */}
+                <div className="p-3 bg-[#EBF2EE] border border-[#D4E3DB] rounded space-y-1">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-[#244838]">
+                    Matchmaker Consultation Guidance
+                  </div>
+                  <p className="text-[11px] text-[#244838] leading-relaxed">
+                    {reasoning.matchmakerAdvice}
+                  </p>
+                </div>
+
+                <div className="text-right pt-1">
+                  <button
+                    type="button"
+                    onClick={handleRunAIReasoning}
+                    disabled={loadingReasoning}
+                    className="text-[11px] text-[#315747] hover:underline font-medium inline-flex items-center gap-1 cursor-pointer"
+                  >
+                    <Sparkles className="w-3 h-3" />
+                    <span>Re-evaluate Analysis</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

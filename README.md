@@ -15,8 +15,13 @@ In high-touch matrimonial matchmaking, recommendations must be authoritative, ex
 
 To ensure true mutual suitability rather than one-sided suitability, the engine evaluates both directions ($S_{A \rightarrow B}$ and $S_{B \rightarrow A}$) and computes the harmonic mean to penalize extreme asymmetry. Assignment-specific demo presets provide visible sensitivity shifts (e.g. height proportionality and age windows for male profiles; educational synergy and family values for female profiles) while strictly preserving the primacy of individual declared preferences.
 
-### AI Integration
-Large Language Models are utilized solely for operational matchmaker productivity—specifically synthesizing deterministic comparison facts into concise briefings and drafting respectful introductory presentation letters. The AI service (`lib/services/ai.service.ts`) communicates with OpenAI (`gpt-4o-mini`) via server-side route handlers with zero client exposure of API keys. Strict privacy safeguards ensure contact vectors, full surnames, sensitive caste data, and exact incomes are never transmitted to external models. All AI responses are validated using Zod schemas; if the model fails, times out, or the API key is omitted, the engine deterministically falls back to structured templates without interrupting user workflows.
+### AI Integration (Google Gemini API)
+Large Language Models are utilized solely for operational matchmaker productivity—specifically synthesizing deterministic comparison facts into concise briefings, drafting respectful introductory presentation letters, and providing deep qualitative natural language fit reasoning.
+
+> **Why Google Gemini API was chosen over OpenAI**:  
+> **Google Gemini API (`gemini-1.5-flash`) was selected as the platform's primary LLM provider because OpenAI API is strictly paid (requiring paid credit balance and active billing).** In contrast, Google Gemini provides an accessible developer tier with generous rate limits, enabling reviewers and developers to run AI-powered match briefings, introductory email drafts, and profile fit reasoning without incurring mandatory API billing barriers.
+
+The AI service (`lib/services/ai.service.ts`) communicates with the Google Gemini REST API via server-side route handlers with zero client exposure of API keys. Strict privacy safeguards ensure contact vectors (phone/email), full surnames, sensitive caste data, and exact incomes are never transmitted to external models. All AI responses are validated using Zod schemas; if the model fails, times out, or `GEMINI_API_KEY` is omitted, the engine deterministically falls back to structured templates and mathematical rules without interrupting user workflows.
 
 ### Assumptions and Limitations
 The current MVP implements a binary matrimonial demo configuration (Male $\leftrightarrow$ Female) reflecting traditional industry search patterns. Geographic proximity is evaluated through city and state boundaries rather than geodesic latitude/longitude calculations. Cultural horoscope / Kundali matching is treated as a modular plugin candidate for future releases rather than a default mandatory constraint.
@@ -45,7 +50,7 @@ The current MVP implements a binary matrimonial demo configuration (Male $\leftr
 - **Form Management & Validation**: React Hook Form, Zod v4
 - **ORM & Database**: Prisma ORM v6 (SQLite for zero-config local development; PostgreSQL schema ready for cloud deployment)
 - **Authentication**: Stateless HMAC-signed session cookies via `jose` and `bcryptjs` password hashing
-- **AI Service**: OpenAI SDK (`gpt-4o-mini`) with schema validation and deterministic fallback
+- **AI Service**: Google Gemini API (`gemini-1.5-flash`, `gemini-2.0-flash`) with Zod schema validation and deterministic rule engine fallback (chosen over OpenAI due to paid billing constraints)
 - **Testing Framework**: Vitest v5, Vite
 
 ---
@@ -70,7 +75,7 @@ Default local `.env` content:
 ```env
 DATABASE_URL="file:./dev.db"
 JWT_SECRET="tdc-matchmaker-development-jwt-session-secret-change-in-production"
-OPENAI_API_KEY="" # Optional: Deterministic fallbacks run when omitted
+GEMINI_API_KEY="" # Enter your Gemini API key (Free tier available; deterministic rules run if omitted)
 NODE_ENV="development"
 ```
 

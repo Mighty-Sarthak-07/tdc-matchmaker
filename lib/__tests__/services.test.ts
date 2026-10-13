@@ -122,4 +122,14 @@ describe("AIService Deterministic Fallback Pipeline", () => {
     expect(draft.messageBody).toContain("Dear Rohan");
     expect(draft.messageBody).toContain("Ananya");
   });
+
+  it("produces multi-attribute LLM fit reasoning with qualitative scoring and matchmaker advice", async () => {
+    const reasoning = await AIService.evaluateFitReasoning(mockCustomer, mockCandidate, mockComp);
+    expect(reasoning).toBeDefined();
+    expect(reasoning.qualitativeScore).toBeGreaterThanOrEqual(0);
+    expect(reasoning.tier).toBeDefined();
+    expect(reasoning.culturalAndFamilySynergy).toBeDefined();
+    expect(reasoning.careerAndLifestyleAlignment).toBeDefined();
+    expect(reasoning.matchmakerAdvice).toBeDefined();
+  });
 });

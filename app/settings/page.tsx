@@ -22,7 +22,8 @@ export default async function SettingsPage() {
     redirect("/login");
   }
 
-  const hasOpenAiKey = !!process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.trim() !== "";
+  const hasGeminiKey = !!process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.trim() !== "" && process.env.GEMINI_API_KEY !== "your-gemini-api-key";
+  const activeProvider = hasGeminiKey ? "Google Gemini (gemini-1.5-flash)" : "Deterministic Mathematical Engine";
 
   return (
     <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto w-full space-y-6 text-[#242522] animate-fade-in">
@@ -134,33 +135,38 @@ export default async function SettingsPage() {
         </div>
 
         {/* Card 3: AI Service Integration */}
-        <div className="p-5 bg-[#FFFFFF] border border-[#E6E3DC] rounded shadow-xs space-y-3">
+        <div className="p-5 bg-[#FFFFFF] border border-[#E6E3DC] rounded shadow-xs space-y-3 card-hover">
           <div className="flex items-center gap-2 pb-2 border-b border-[#E6E3DC]">
             <Cpu className="w-4 h-4 text-[#315747]" />
             <h2 className="text-xs font-semibold uppercase tracking-wider text-[#777970]">
-              AI Integration Status
+              AI Integration Status (Google Gemini)
             </h2>
           </div>
 
           <div className="flex items-center justify-between text-xs">
-            <span className="text-[#555750]">OpenAI Model:</span>
-            <span className="font-mono font-medium text-[#242522]">gpt-4o-mini (JSON Mode)</span>
+            <span className="text-[#555750]">Active AI Engine:</span>
+            <span className="font-mono font-medium text-[#242522]">{activeProvider}</span>
           </div>
 
           <div className="flex items-center justify-between text-xs">
-            <span className="text-[#555750]">API Key Configured:</span>
+            <span className="text-[#555750]">Google Gemini Model:</span>
+            <span className="font-mono font-medium text-[#242522]">gemini-1.5-flash (JSON Mode)</span>
+          </div>
+
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-[#555750]">API Key Status:</span>
             <span
               className={`font-semibold ${
-                hasOpenAiKey ? "text-[#315747]" : "text-[#785412]"
+                hasGeminiKey ? "text-[#315747]" : "text-[#785412]"
               }`}
             >
-              {hasOpenAiKey ? "Active (Connected)" : "Omitted / Deterministic Fallback Mode"}
+              {hasGeminiKey ? "Active (Connected via GEMINI_API_KEY)" : "Omitted / Deterministic Rule Engine Active"}
             </span>
           </div>
 
           <div className="p-2.5 bg-[#FAF9F6] border border-[#E6E3DC] rounded text-[11px] text-[#777970] leading-relaxed">
             <Info className="w-3.5 h-3.5 text-[#315747] inline mr-1" />
-            When the API key is not configured or an endpoint times out, the system automatically runs the deterministic explanation and introduction generation fallback without interruption.
+            Google Gemini API is used as the platform&apos;s primary LLM engine (OpenAI is paid and requires active credits). Gemini powers natural language match explanations, deep profile fit reasoning, and customized introduction letters. When no key is provided, the platform automatically runs deterministic mathematical rules without error.
           </div>
         </div>
 
