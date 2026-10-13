@@ -176,12 +176,12 @@ export default function CustomerProfilePage({
   };
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto w-full space-y-6 text-[#242522]">
+    <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto w-full space-y-6 text-[#242522] animate-fade-in">
       {/* Top Navigation breadcrumb */}
-      <div className="flex items-center justify-between pb-3 border-b border-[#E6E3DC]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#E6E3DC]">
         <Link
           href="/customers"
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-[#777970] hover:text-[#242522] transition-colors"
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-[#777970] hover:text-[#242522] transition-colors btn-press"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>Back to Client Directory</span>
@@ -196,14 +196,14 @@ export default function CustomerProfilePage({
                   setIsEditing(false);
                 }}
                 disabled={saving}
-                className="px-3 py-1.5 text-xs font-medium text-[#555750] bg-white border border-[#E6E3DC] rounded hover:bg-[#FAF9F6]"
+                className="px-3 py-1.5 text-xs font-medium text-[#555750] bg-white border border-[#E6E3DC] rounded hover:bg-[#FAF9F6] btn-press cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSaveProfile}
                 disabled={saving}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-[#315747] hover:bg-[#254437] rounded transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-[#315747] hover:bg-[#254437] rounded transition-colors btn-press cursor-pointer"
               >
                 {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
                 <span>Save Changes</span>
@@ -213,14 +213,14 @@ export default function CustomerProfilePage({
             <>
               <button
                 onClick={() => setIsEditing(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#242522] bg-white border border-[#E6E3DC] rounded hover:bg-[#FAF9F6] transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#242522] bg-white border border-[#E6E3DC] rounded hover:bg-[#FAF9F6] transition-colors btn-press cursor-pointer"
               >
                 <Edit2 className="w-3.5 h-3.5 text-[#555750]" />
                 <span>Edit Profile</span>
               </button>
               <Link
                 href={`/recommendations?customerId=${customer.id}`}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-[#315747] hover:bg-[#254437] rounded transition-colors shadow-xs"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-[#315747] hover:bg-[#254437] rounded transition-colors shadow-xs btn-press"
               >
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>Find Matches</span>
@@ -232,7 +232,7 @@ export default function CustomerProfilePage({
 
       {saveMessage && (
         <div
-          className={`p-3 rounded text-xs flex items-center gap-2 ${
+          className={`p-3 rounded text-xs flex items-center gap-2 animate-fade-in ${
             saveMessage.type === "success"
               ? "bg-[#EBF2EE] border border-[#D4E3DB] text-[#244838]"
               : "bg-[#FDF2EE] border border-[#F5DDD5] text-[#9A4630]"
@@ -248,14 +248,14 @@ export default function CustomerProfilePage({
       )}
 
       {/* Profile Header Summary */}
-      <div className="p-6 bg-[#FFFFFF] border border-[#E6E3DC] rounded shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+      <div className="p-4 sm:p-6 bg-[#FFFFFF] border border-[#E6E3DC] rounded shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-6 card-hover">
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 rounded-full bg-[#E8E4DA] text-[#315747] font-semibold text-lg flex items-center justify-center shrink-0">
             {customer.firstName[0]}
             {customer.lastName[0]}
           </div>
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-lg font-semibold text-[#242522] tracking-tight">
                 {customer.firstName} {customer.lastName}
               </h1>
@@ -269,7 +269,7 @@ export default function CustomerProfilePage({
                 </span>
               )}
             </div>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#555750] mt-1">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#555750] mt-1">
               <span>{age} years old (DOB: {new Date(customer.dateOfBirth).toLocaleDateString()})</span>
               <span>•</span>
               <span>{formatHeight(customer.heightCm)}</span>
@@ -302,11 +302,11 @@ export default function CustomerProfilePage({
         </div>
       </div>
 
-      {/* Tabs Bar */}
-      <div className="flex border-b border-[#E6E3DC] text-xs font-medium space-x-6">
+      {/* Tabs Bar with mobile smooth horizontal scroll */}
+      <div className="flex border-b border-[#E6E3DC] text-xs font-medium space-x-4 sm:space-x-6 overflow-x-auto no-scrollbar whitespace-nowrap">
         <button
           onClick={() => setActiveTab("biodata")}
-          className={`pb-2.5 transition-colors ${
+          className={`pb-2.5 transition-colors shrink-0 btn-press cursor-pointer ${
             activeTab === "biodata"
               ? "border-b-2 border-[#315747] text-[#315747] font-semibold"
               : "text-[#777970] hover:text-[#242522]"
@@ -316,7 +316,7 @@ export default function CustomerProfilePage({
         </button>
         <button
           onClick={() => setActiveTab("preferences")}
-          className={`pb-2.5 transition-colors ${
+          className={`pb-2.5 transition-colors shrink-0 btn-press cursor-pointer ${
             activeTab === "preferences"
               ? "border-b-2 border-[#315747] text-[#315747] font-semibold"
               : "text-[#777970] hover:text-[#242522]"
@@ -326,7 +326,7 @@ export default function CustomerProfilePage({
         </button>
         <button
           onClick={() => setActiveTab("notes")}
-          className={`pb-2.5 transition-colors ${
+          className={`pb-2.5 transition-colors shrink-0 btn-press cursor-pointer ${
             activeTab === "notes"
               ? "border-b-2 border-[#315747] text-[#315747] font-semibold"
               : "text-[#777970] hover:text-[#242522]"
@@ -336,7 +336,7 @@ export default function CustomerProfilePage({
         </button>
         <button
           onClick={() => setActiveTab("activity")}
-          className={`pb-2.5 transition-colors ${
+          className={`pb-2.5 transition-colors shrink-0 btn-press cursor-pointer ${
             activeTab === "activity"
               ? "border-b-2 border-[#315747] text-[#315747] font-semibold"
               : "text-[#777970] hover:text-[#242522]"

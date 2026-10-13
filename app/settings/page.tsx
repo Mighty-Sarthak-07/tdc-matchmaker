@@ -25,7 +25,7 @@ export default async function SettingsPage() {
   const hasOpenAiKey = !!process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.trim() !== "";
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto w-full space-y-6 text-[#242522]">
+    <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto w-full space-y-6 text-[#242522] animate-fade-in">
       {/* Header */}
       <div className="pb-4 border-b border-[#E6E3DC]">
         <div className="text-xs uppercase tracking-wider text-[#777970] font-semibold">
@@ -41,7 +41,7 @@ export default async function SettingsPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Card 1: Algorithm Weights */}
-        <div className="p-5 bg-[#FFFFFF] border border-[#E6E3DC] rounded shadow-xs space-y-4">
+        <div className="p-5 bg-[#FFFFFF] border border-[#E6E3DC] rounded shadow-xs space-y-4 card-hover">
           <div className="flex items-center gap-2 pb-2 border-b border-[#E6E3DC]">
             <Sliders className="w-4 h-4 text-[#315747]" />
             <h2 className="text-xs font-semibold uppercase tracking-wider text-[#777970]">

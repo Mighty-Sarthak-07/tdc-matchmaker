@@ -62,7 +62,7 @@ export default function SentMatchesPage() {
   };
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto w-full space-y-6 text-[#242522]">
+    <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto w-full space-y-6 text-[#242522] animate-fade-in">
       {/* Header */}
       <div className="pb-4 border-b border-[#E6E3DC]">
         <div className="text-xs uppercase tracking-wider text-[#777970] font-semibold">
@@ -98,7 +98,7 @@ export default function SentMatchesPage() {
               }
 
               return (
-                <div key={item.id} className="p-5 hover:bg-[#FAF9F6] transition-colors text-xs space-y-3">
+                <div key={item.id} className="p-4 sm:p-5 hover:bg-[#FAF9F6] transition-colors text-xs space-y-3 card-hover animate-fade-in">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div className="flex items-center gap-3">
                       <div className="flex items-center gap-1.5 font-medium text-sm text-[#242522]">

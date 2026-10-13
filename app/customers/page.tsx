@@ -127,7 +127,7 @@ export default function CustomersPage() {
   };
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto w-full space-y-6 text-[#242522]">
+    <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto w-full space-y-6 text-[#242522] animate-fade-in">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#E6E3DC]">
         <div>
@@ -241,7 +241,7 @@ export default function CustomersPage() {
           <div className="flex items-end">
             <button
               onClick={resetFilters}
-              className="w-full px-2 py-1.5 bg-[#FFFFFF] border border-[#E6E3DC] rounded text-xs text-[#555750] hover:bg-[#FAF9F6] flex items-center justify-center gap-1.5 transition-colors"
+              className="w-full px-2 py-1.5 bg-[#FFFFFF] border border-[#E6E3DC] rounded text-xs text-[#555750] hover:bg-[#FAF9F6] flex items-center justify-center gap-1.5 transition-colors btn-press cursor-pointer"
             >
               <RotateCcw className="w-3 h-3 text-[#777970]" />
               <span>Reset</span>
@@ -381,8 +381,8 @@ export default function CustomersPage() {
         </div>
 
         {/* Pagination Footer */}
-        <div className="px-4 py-3 bg-[#FAF9F6] border-t border-[#E6E3DC] flex items-center justify-between text-xs text-[#777970]">
-          <div>
+        <div className="px-4 py-3 bg-[#FAF9F6] border-t border-[#E6E3DC] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#777970]">
+          <div className="text-center sm:text-left">
             Showing {(pagination.page - 1) * pagination.pageSize + 1} to{" "}
             {Math.min(pagination.page * pagination.pageSize, pagination.total)} of{" "}
             {pagination.total} profiles
@@ -391,17 +391,19 @@ export default function CustomersPage() {
             <button
               onClick={() => fetchCustomers(pagination.page - 1)}
               disabled={pagination.page <= 1}
-              className="p-1 border border-[#E6E3DC] rounded bg-white hover:bg-[#FAF9F6] disabled:opacity-40"
+              className="p-1.5 border border-[#E6E3DC] rounded bg-white hover:bg-[#FAF9F6] disabled:opacity-40 btn-press cursor-pointer"
+              title="Previous Page"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span>
+            <span className="px-1 font-medium">
               Page {pagination.page} of {pagination.totalPages}
             </span>
             <button
               onClick={() => fetchCustomers(pagination.page + 1)}
               disabled={pagination.page >= pagination.totalPages}
-              className="p-1 border border-[#E6E3DC] rounded bg-white hover:bg-[#FAF9F6] disabled:opacity-40"
+              className="p-1.5 border border-[#E6E3DC] rounded bg-white hover:bg-[#FAF9F6] disabled:opacity-40 btn-press cursor-pointer"
+              title="Next Page"
             >
               <ChevronRight className="w-4 h-4" />
             </button>

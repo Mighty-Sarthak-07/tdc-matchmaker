@@ -60,7 +60,7 @@ export default function FollowUpsPage() {
   };
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto w-full space-y-6 text-[#242522]">
+    <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto w-full space-y-6 text-[#242522] animate-fade-in">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#E6E3DC]">
         <div>
@@ -110,7 +110,7 @@ export default function FollowUpsPage() {
               return (
                 <div
                   key={fu.id}
-                  className="p-4 hover:bg-[#FAF9F6] transition-colors text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                  className="p-4 hover:bg-[#FAF9F6] transition-colors text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 card-hover animate-fade-in"
                 >
                   <div className="flex items-start gap-3">
                     <button

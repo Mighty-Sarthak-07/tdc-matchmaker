@@ -124,8 +124,8 @@ export function SendMatchModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-      <div className="bg-[#FFFFFF] border border-[#E6E3DC] rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden text-[#242522]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-fade-in">
+      <div className="bg-[#FFFFFF] border border-[#E6E3DC] rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden text-[#242522] animate-modal-scale">
         {/* Modal Header */}
         <div className="px-6 py-4 border-b border-[#E6E3DC] flex items-center justify-between bg-[#FAF9F6]">
           <div>
@@ -145,9 +145,9 @@ export function SendMatchModal({
         </div>
 
         {/* Modal Content */}
-        <div className="p-6 overflow-y-auto space-y-4 flex-1">
+        <div className="p-4 sm:p-6 overflow-y-auto space-y-4 flex-1">
           {/* Profiles Comparison Card */}
-          <div className="grid grid-cols-2 gap-3 p-3.5 bg-[#FAF9F6] border border-[#E6E3DC] rounded text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 bg-[#FAF9F6] border border-[#E6E3DC] rounded text-xs">
             <div>
               <div className="text-[11px] text-[#777970] font-semibold uppercase">Client</div>
               <div className="font-semibold text-sm text-[#242522] mt-0.5">
@@ -157,7 +157,7 @@ export function SendMatchModal({
                 {custAge} yrs • {customer.city} • {customer.highestEducation}
               </div>
             </div>
-            <div className="border-l border-[#E6E3DC] pl-3">
+            <div className="border-t sm:border-t-0 sm:border-l border-[#E6E3DC] pt-2 sm:pt-0 sm:pl-3">
               <div className="text-[11px] text-[#777970] font-semibold uppercase">Candidate</div>
               <div className="font-semibold text-sm text-[#242522] mt-0.5">
                 {candidate.firstName} {candidate.lastName}

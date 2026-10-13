@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { Sidebar } from "@/components/Sidebar";
+import { AppShell } from "@/components/AppShell";
 import { getSessionUser } from "@/lib/auth";
 
 const geistSans = Geist({
@@ -34,10 +34,9 @@ export default async function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-[#F8F7F4] text-[#242522]">
-        <Sidebar user={user} />
-        <div className="flex-1 md:pl-64 flex flex-col min-w-0 pt-14 md:pt-0">
+        <AppShell user={user}>
           {children}
-        </div>
+        </AppShell>
       </body>
     </html>
   );

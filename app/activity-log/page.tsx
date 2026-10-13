@@ -28,7 +28,7 @@ export default function ActivityLogPage() {
   }, []);
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto w-full space-y-6 text-[#242522]">
+    <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto w-full space-y-6 text-[#242522] animate-fade-in">
       {/* Header */}
       <div className="pb-4 border-b border-[#E6E3DC]">
         <div className="text-xs uppercase tracking-wider text-[#777970] font-semibold">
@@ -56,7 +56,7 @@ export default function ActivityLogPage() {
         ) : (
           <div className="divide-y divide-[#EFECE6]">
             {logs.map((log) => (
-              <div key={log.id} className="p-4 hover:bg-[#FAF9F6] transition-colors text-xs space-y-1">
+              <div key={log.id} className="p-4 hover:bg-[#FAF9F6] transition-colors text-xs space-y-1 card-hover animate-fade-in">
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">

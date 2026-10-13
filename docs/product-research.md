@@ -1,3 +1,4 @@
+
 # Product Research & Matrimonial Domain Architecture
 
 This document summarizes verified public product patterns from leading matrimonial and relationship platforms (**Shaadi.com**, **BharatMatrimony**, and **Hinge**) and maps them directly to the architectural decisions for **TDC Matchmaker**—an operational CRM and recommendation workspace built for professional human matchmakers.

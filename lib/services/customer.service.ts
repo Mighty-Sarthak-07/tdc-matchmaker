@@ -177,6 +177,8 @@ export class CustomerService {
       recentCustomers,
       recentFollowUps,
       journeyDistribution,
+      recentActivities,
+      topRecommendations,
     ] = await Promise.all([
       db.customerProfile.count({ where: { isArchived: false } }),
       db.customerProfile.count({ where: { isArchived: false, isVerified: true } }),
@@ -198,8 +200,11 @@ export class CustomerService {
           customerCode: true,
           firstName: true,
           lastName: true,
-          city: true,
+          dateOfBirth: true,
           gender: true,
+          city: true,
+          maritalStatus: true,
+          designation: true,
           highestEducation: true,
           journeyStage: true,
           isVerified: true,
@@ -209,15 +214,43 @@ export class CustomerService {
       db.followUp.findMany({
         where: { status: "PENDING" },
         include: {
-          customer: { select: { id: true, firstName: true, lastName: true, customerCode: true } },
+          customer: { select: { id: true, firstName: true, lastName: true, customerCode: true, city: true } },
         },
         orderBy: { dueDate: "asc" },
-        take: 6,
+        take: 5,
       }),
       db.customerProfile.groupBy({
         by: ["journeyStage"],
         where: { isArchived: false },
         _count: { id: true },
+      }),
+      db.activityLog.findMany({
+        take: 5,
+        orderBy: { createdAt: "desc" },
+        include: {
+          customer: { select: { id: true, firstName: true, lastName: true, city: true } },
+          user: { select: { name: true } },
+        },
+      }),
+      db.matchRecommendation.findMany({
+        where: { compatibilityScore: { gte: 70 } },
+        orderBy: { compatibilityScore: "desc" },
+        take: 5,
+        include: {
+          candidate: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              dateOfBirth: true,
+              city: true,
+              designation: true,
+              industry: true,
+              highestEducation: true,
+            },
+          },
+          customer: { select: { id: true, firstName: true, lastName: true } },
+        },
       }),
     ]);
 
@@ -232,6 +265,8 @@ export class CustomerService {
       },
       recentCustomers,
       recentFollowUps,
+      recentActivities,
+      topRecommendations,
       journeyDistribution: journeyDistribution.map((d) => ({
         stage: d.journeyStage,
         count: d._count.id,
