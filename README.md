@@ -101,31 +101,38 @@ Create a `.env` file in the project folder (or copy `.env.example`):
 ```bash
 cp .env.example .env
 ```
-Default local `.env` configuration (works immediately out of the box with zero external setup):
+```bash
+cp .env.example .env
+```
+Configuration settings in `.env`:
 ```env
-# Local zero-configuration SQLite database
-DATABASE_URL="file:./dev.db"
+# Hosted Neon / Vercel PostgreSQL database
+DATABASE_URL="postgresql://neondb_owner:npg_B5dko2WGIHEN@ep-muddy-river-b4ljzh9i-pooler.c-6.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
 
 # Session JWT Secret
 JWT_SECRET="tdc-matchmaker-development-jwt-session-secret-change-in-production"
 
 # AI Integration: Powered by Google Gemini 3.0 Flash API
-# (Optional: Add your Gemini API key from Google AI Studio. If omitted, built-in deterministic engine runs automatically!)
-GEMINI_API_KEY=""
+# (Add your Gemini API key from Google AI Studio. If omitted, built-in deterministic engine runs automatically!)
+GEMINI_API_KEY="your-gemini-api-key"
 GEMINI_MODEL="gemini-3.0-flash"
 
 # Environment
 NODE_ENV="development"
 ```
 
+> **Database Architecture (Dual Support)**: 
+> - **PostgreSQL (Default & Production Ready)**: TDC is pre-configured with Neon cloud PostgreSQL (`schema.prisma` provider is `postgresql`).
+> - **Local SQLite (Optional Offline)**: If you prefer running completely offline without internet or cloud database credentials, switch `provider = "sqlite"` in `prisma/schema.prisma` and set `DATABASE_URL="file:./dev.db"`.
+
 ### Step 5: Push Database Schema
-Create the local SQLite database (`dev.db`) automatically using Prisma:
+Push the table structure directly to your database (Neon PostgreSQL or SQLite):
 ```bash
 npx prisma db push
 ```
 
 ### Step 6: Seed 125 Realistic Indian Profiles
-Populate the database with the default matchmaker account and 125 rich, diverse matrimonial profiles across 12 Indian cities:
+Populate the database with the default matchmaker account (`matchmaker@tdc.com` / `password123`) and 125 rich, diverse matrimonial profiles across 12 Indian cities:
 ```bash
 npm run seed
 ```
@@ -296,28 +303,43 @@ In professional matchmaking, client ages must never go out of date. TDC calculat
 
 ---
 
-## 🌐 Production Deployment (Vercel & PostgreSQL)
+## 🌐 Production Deployment Guide (Vercel & Neon PostgreSQL)
 
-The project is ready for one-click deployment to **Vercel** with hosted PostgreSQL (Neon, Supabase, or AWS RDS):
+TDC Matchmaker is production-configured for zero-friction deployment to **Vercel** with **Neon Cloud PostgreSQL**:
 
-1. **Switch Prisma Schema**:  
-   Update `prisma/schema.prisma` provider to `postgresql`:
-   ```prisma
-   datasource db {
-     provider = "postgresql"
-     url      = env("DATABASE_URL")
-   }
-   ```
-2. **Add Environment Variables in Vercel Dashboard**:
-   - `DATABASE_URL`: `postgresql://user:password@host:5432/dbname?sslmode=require`
-   - `JWT_SECRET`: Random 32+ character string
-   - `GEMINI_API_KEY`: Your Google Gemini API Key (optional)
-   - `GEMINI_MODEL`: `gemini-3.0-flash`
-3. **Deploy & Push Database**:
-   ```bash
-   npx prisma db push
-   npm run seed
-   ```
+### Step 1: Connect Your Repository to Vercel
+1. Go to [vercel.com](https://vercel.com/) and click **"Add New Project"**.
+2. Select your repository: `Mighty-Sarthak-07/tdc-matchmaker`.
+3. Framework Preset: **Next.js** (auto-detected).
+
+### Step 2: Set Environment Variables in Vercel
+In the **Environment Variables** panel, add:
+
+| Variable Name | Example / Production Value | Notes |
+| :--- | :--- | :--- |
+| `DATABASE_URL` | `postgresql://neondb_owner:...@ep-muddy-river-...neon.tech/neondb?sslmode=require` | Your Neon or Vercel Postgres pooled connection string |
+| `JWT_SECRET` | `tdc-production-secure-random-jwt-token-key-2026` | 32+ character secret for session cookies |
+| `GEMINI_API_KEY` | `AQ.Ab8RN6...` | Free API key from Google AI Studio |
+| `GEMINI_MODEL` | `gemini-3.0-flash` | Latest Google Gemini model |
+| `NODE_ENV` | `production` | Production mode |
+
+> **Dependency Note**: The repository includes `.npmrc` (`legacy-peer-deps=true`) and `"postinstall": "prisma generate"`, guaranteeing that Prisma Client is automatically built during Vercel's build pipeline with zero version conflicts.
+
+### Step 3: Initialize and Seed the Database
+Because the database is hosted remotely on Neon, you can run the schema migration and seed from your local machine:
+```bash
+# 1. Push schema tables to Neon
+npx prisma db push
+
+# 2. Seed 125 profiles and matchmaker credentials into Neon
+npm run seed
+```
+
+### Step 4: Click Deploy!
+Vercel will compile the Next.js production build and provide a live URL (e.g., `https://tdc-matchmaker.vercel.app`).
+You can log in directly with:
+- **Email**: `matchmaker@tdc.com`
+- **Password**: `password123`
 
 ---
 
