@@ -55,7 +55,7 @@ function RecommendationsWorkspaceInner() {
         const data = await res.json();
         if (data.customers) {
           setCustomers(data.customers);
-          if (!selectedCustomerId && data.customers.length > 0) {
+          if (!initialCustomerId && data.customers.length > 0) {
             setSelectedCustomerId(data.customers[0].id);
           }
         }
@@ -66,7 +66,7 @@ function RecommendationsWorkspaceInner() {
       }
     }
     loadClientList();
-  }, [selectedCustomerId]);
+  }, [initialCustomerId]);
 
   // Load focal client and candidate recommendations
   const loadRecommendations = useCallback(async () => {
