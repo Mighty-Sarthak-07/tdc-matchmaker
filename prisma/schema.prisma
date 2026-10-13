@@ -1,0 +1,207 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String             @id @default(cuid())
+  email        String             @unique
+  passwordHash String
+  name         String
+  role         String             @default("MATCHMAKER") // MATCHMAKER | ADMIN
+  avatarUrl    String?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  notes        CustomerNote[]
+  followUps    FollowUp[]
+  sentMatches  MatchInteraction[]
+  activities   ActivityLog[]
+}
+
+model CustomerProfile {
+  id                  String             @id @default(cuid())
+  customerCode        String             @unique // e.g., TDC-0101
+  firstName           String
+  lastName            String
+  gender              String             // "MALE" | "FEMALE"
+  dateOfBirth         DateTime           // Dynamic age calculation from DOB
+  heightCm            Int
+  email               String
+  phone               String
+  city                String
+  state               String
+  country             String             @default("India")
+  maritalStatus       String             // "NEVER_MARRIED" | "DIVORCED" | "WIDOWED" | "AWAITING_DIVORCE"
+  profilePhotoUrl     String?
+  isVerified          Boolean            @default(false)
+  verificationNotes   String?
+
+  // Education & Career
+  undergraduateCollege String?
+  degree               String?
+  highestEducation     String             // "BACHELORS" | "MASTERS" | "DOCTORATE" | "OTHER"
+  currentCompany       String?
+  designation          String?
+  industry             String?
+  employmentType       String?            // "PRIVATE" | "GOVERNMENT" | "BUSINESS" | "SELF_EMPLOYED"
+  annualIncome         Float?             // Annual income in Lakhs INR
+  incomeCurrency       String             @default("INR")
+
+  // Family & Cultural Background
+  religion            String             // "HINDU" | "SIKH" | "JAIN" | "MUSLIM" | "CHRISTIAN" | "PARSI" | "OTHER"
+  caste               String?            // Voluntarily supplied only
+  motherTongue        String
+  otherLanguages      String?            // JSON string array
+  familyType          String?            // "NUCLEAR" | "JOINT"
+  familyValues        String?            // "TRADITIONAL" | "MODERATE" | "LIBERAL"
+  familyLocation      String?
+  fatherOccupation    String?
+  motherOccupation    String?
+  siblingsCount       Int                @default(0)
+  siblingDetails      String?
+
+  // Lifestyle & Relationship Goals
+  wantChildren        String             // "YES" | "NO" | "MAYBE"
+  openToRelocate      String             // "YES" | "NO" | "MAYBE"
+  openToPets          String             // "YES" | "NO" | "MAYBE"
+  diet                String             // "VEGETARIAN" | "EGGETARIAN" | "NON_VEGETARIAN" | "VEGAN" | "JAIN"
+  smoking             String?            // "NEVER" | "OCCASIONALLY" | "REGULARLY"
+  drinking            String?            // "NEVER" | "SOCIALLY" | "REGULARLY"
+  hobbies             String?            // JSON string array
+  marriageTimeline    String?            // "WITHIN_6_MONTHS" | "6_TO_12_MONTHS" | "1_TO_2_YEARS" | "NOT_DECIDED"
+  relationshipExpectations String?
+  familyExpectations       String?
+
+  // Operational Fields
+  journeyStage        String             @default("NEW_LEAD") // Journey stages enum
+  profileCompleteness Int                @default(80)
+  assignedMatchmakerId String?
+  lastContactedAt     DateTime?
+  nextFollowUpDate    DateTime?
+  internalNotes       String?
+  isArchived          Boolean            @default(false)
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  partnerPreference   PartnerPreference?
+  notes               CustomerNote[]
+  followUps           FollowUp[]
+  recommendationsAsFocal     MatchRecommendation[] @relation("FocalCustomer")
+  recommendationsAsCandidate MatchRecommendation[] @relation("CandidateCustomer")
+  sentMatchesAsCustomerA    MatchInteraction[]    @relation("CustomerA")
+  sentMatchesAsCustomerB    MatchInteraction[]    @relation("CustomerB")
+  activityLogs        ActivityLog[]
+}
+
+model PartnerPreference {
+  id                      String          @id @default(cuid())
+  customerId              String          @unique
+  customer                CustomerProfile @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  minAge                  Int?
+  maxAge                  Int?
+  minHeightCm             Int?
+  maxHeightCm             Int?
+  preferredCities         String?         // JSON array of strings
+  preferredEducation      String?         // JSON array of strings
+  preferredProfessions    String?         // JSON array of strings
+  maritalStatusPreferences String?        // JSON array of strings
+  wantChildrenPreference  String?         // "ANY" | "YES" | "NO" | "MAYBE"
+  openToRelocatePreference String?        // "ANY" | "YES" | "NO"
+  dietPreferences         String?         // JSON array of strings
+  religionPreferences     String?         // JSON array of strings
+  dealbreakers            String?         // JSON array of dealbreaker keys
+  flexiblePreferences     String?         // JSON array of keys
+  createdAt               DateTime        @default(now())
+  updatedAt               DateTime        @updatedAt
+}
+
+model MatchRecommendation {
+  id                 String          @id @default(cuid())
+  customerId         String
+  customer           CustomerProfile @relation("FocalCustomer", fields: [customerId], references: [id], onDelete: Cascade)
+  candidateId        String
+  candidate          CustomerProfile @relation("CandidateCustomer", fields: [candidateId], references: [id], onDelete: Cascade)
+  compatibilityScore Float
+  tier               String          // "HIGH_POTENTIAL" | "GOOD_POTENTIAL" | "NEEDS_REVIEW"
+  scoreBreakdown     String          // JSON: { mutualPreference, familyValues, careerEducation, locationRelocation, lifestyleInterests, ageHeight }
+  customerScoreAtoB  Float
+  candidateScoreBtoA Float
+  sharedPreferences  String          // JSON array of strings
+  potentialConflicts String          // JSON array of strings
+  missingAttributes  String          // JSON array of strings
+  explanationText    String
+  algorithmVersion   String          @default("v1.0.0")
+  status             String          @default("SUGGESTED") // SUGGESTED | REVIEWED | SENT | REJECTED | DISMISSED
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  interactions       MatchInteraction[]
+
+  @@unique([customerId, candidateId])
+}
+
+model MatchInteraction {
+  id                    String               @id @default(cuid())
+  matchRecommendationId String?
+  recommendation        MatchRecommendation? @relation(fields: [matchRecommendationId], references: [id], onDelete: SetNull)
+  customerAId           String
+  customerA             CustomerProfile      @relation("CustomerA", fields: [customerAId], references: [id], onDelete: Cascade)
+  customerBId           String
+  customerB             CustomerProfile      @relation("CustomerB", fields: [customerBId], references: [id], onDelete: Cascade)
+  senderId              String
+  sender                User                 @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  subject               String
+  introductionMessage   String
+  status                String               @default("SENT") // SUGGESTED, APPROVED, SENT, VIEWED, INTERESTED, DECLINED, MEETING_SCHEDULED, COMPLETED
+  statusHistory         String               // JSON array: [{ status, timestamp, note }]
+  sentAt                DateTime             @default(now())
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  @@unique([customerAId, customerBId])
+}
+
+model CustomerNote {
+  id         String          @id @default(cuid())
+  customerId String
+  customer   CustomerProfile @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  authorId   String
+  author     User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  noteType   String          @default("GENERAL") // GENERAL | CALL_OUTCOME | MEETING_SUMMARY | PREFERENCE_UPDATE
+  content    String
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+}
+
+model FollowUp {
+  id           String          @id @default(cuid())
+  customerId   String
+  customer     CustomerProfile @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  matchmakerId String
+  matchmaker   User            @relation(fields: [matchmakerId], references: [id], onDelete: Cascade)
+  title        String
+  description  String?
+  dueDate      DateTime
+  priority     String          @default("MEDIUM") // LOW | MEDIUM | HIGH | URGENT
+  status       String          @default("PENDING") // PENDING | COMPLETED | CANCELLED
+  completedAt  DateTime?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+}
+
+model ActivityLog {
+  id         String           @id @default(cuid())
+  customerId String?
+  customer   CustomerProfile? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  userId     String
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  actionType String
+  title      String
+  details    String?          // JSON string
+  createdAt  DateTime         @default(now())
+}
